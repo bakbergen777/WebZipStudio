@@ -1,54 +1,89 @@
-# WebZip Studio — Webpage Compression System
+# WebZip Studio
 
-Final project for the **Data Structure and its Algorithms** course.
+> A desktop compression tool for webpage assets — built from scratch on top of LZ77 + Huffman, implemented as a university Data Structures & Algorithms final project.
 
-| Member | Student ID |
-| --- | --- |
-| Bakbergen Amir | 202469990559 |
-| Bakbergen Alen | 202469990562 |
-| Huang Liu Diego David | 202469990549 |
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![PySide6](https://img.shields.io/badge/GUI-PySide6-41CD52?logo=qt)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-## Purpose
+---
 
-WebZip Studio compresses the resource files of a webpage (HTML, CSS, JS, JPG, PNG) using a custom layered pipeline that is anchored in classic data structures:
+## What It Does
 
-- **Hash maps** for frequency tables and the LZ77 prefix index
-- **Min-heap (priority queue)** to build the Huffman tree
-- **Binary tree** to derive Huffman codes
-- **Sliding window** for LZ77 matches
-- **Queue** for batch processing
-- **Sets** for deduplication and incremental change detection
+WebZip Studio takes a folder of webpage files (HTML, CSS, JS, JPG, PNG) and compresses them using a **custom two-stage pipeline**:
 
-For text resources the round trip is **lossless** and verified by SHA-256. For images the user picks a quality preset (High / Balanced / Strong) and the system uses Pillow to re-encode.
+- **Text files** → LZ77 sliding-window tokeniser → Huffman entropy coder → `.wzs` binary container
+- **Image files** → Pillow re-encoder with user-selectable quality preset (High / Balanced / Strong)
+
+Decompression is lossless for text (verified by SHA-256) and produces the original files exactly.
+
+---
+
+## Demo Numbers
+
+Compressed a 16-file webpage bundle from the included `data/sample_large_case/`:
+
+| Metric | Value |
+|---|---|
+| Original size | 153.82 KB |
+| Compressed size | 74.78 KB |
+| Savings | **51.4%** |
+| Compression ratio | 0.486 |
+| Time (custom pipeline) | 97.7 ms |
+| Text files (12) | 41.10 KB → 18.25 KB (55.6% saved) |
+| Image files (4) | 112.71 KB → 56.53 KB (49.8% saved) |
+
+---
+
+## Screenshots
+
+| Compress tab | Analytics tab | Visualizer tab |
+|---|---|---|
+| ![Compression chart](assets/chart_compare.png) | ![Per-file chart](assets/chart_per_file.png) | ![Strategy chart](assets/chart_strategy.png) |
+
+---
 
 ## Features
 
-- Auto-detected strategy per file extension
-- Single file, multiple files, or whole-folder compression
-- Custom `.wzs` container for text (LZ77 + Huffman + JSON header)
-- Quality-controlled JPEG/PNG re-encoding
-- Decompression with SHA-256 integrity check
-- Batch ZIP/gzip comparison
-- 4G / 5G / WiFi transfer-time simulation
-- Algorithm visualizer (top tokens, Huffman code book, LZ77 matches)
-- Incremental compression that only reprocesses changed files
+- **Auto-strategy** — selects text or image pipeline by file extension
+- **Batch compression** — single file, multiple files, or an entire folder in one click
+- **Custom `.wzs` container** — carries the LZ77 frequency table + Huffman bitstream with a `WZS1` magic header
+- **Integrity checking** — SHA-256 hash stored in the manifest; decompression verifies every text file
+- **Baseline comparison** — side-by-side ratio vs gzip and ZIP
+- **Transfer simulation** — 4G / 5G / WiFi estimated transfer time for compressed vs original
+- **Algorithm visualiser** — inspect top LZ77 tokens, the Huffman code book, and match lengths
+- **Incremental compression** — SHA-256 cache skips unchanged files on repeated runs
+- **CLI + GUI** — full five-tab PySide6 desktop app _and_ a headless command-line interface
 
-## Demo numbers (from `data/sample_large_case`)
+---
 
-```
-Files: 16
-Original: 153.82 KB
-Compressed: 74.78 KB     -> 51.4% savings, ratio 0.486
-Custom: 74.78 KB in 97.7 ms
-gzip:   43.17 KB in  2.0 ms
-zip:    44.46 KB in  6.9 ms
-text strategy: 12 files, 41.10 KB -> 18.25 KB (55.6% savings)
-image strategy: 4 files, 112.71 KB -> 56.53 KB (49.8% savings)
-```
+## Data Structures Used
 
-The numbers above are recomputed every run and saved to `reports/demo_run_v2/metrics.json`.
+| Structure | Where |
+|---|---|
+| **Hash map** | LZ77 3-byte prefix index, Huffman frequency table, manifest |
+| **Min-heap (priority queue)** | Building the Huffman tree from frequency counts |
+| **Binary tree** | Storing Huffman codes for encode/decode |
+| **Sliding window** | LZ77 look-back buffer |
+| **Queue (`deque`)** | Batch file processing in the manager |
+| **Set** | Deduplication, incremental change detection |
 
-## How to run
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Python 3.10 |
+| GUI | PySide6 (Qt6) |
+| Image processing | Pillow |
+| Compression algorithms | Implemented from scratch (no zlib) |
+| Archive format | Custom `.wzs` + standard ZIP wrapper |
+| Testing | `unittest` (custom runner) |
+
+---
+
+## How to Run
 
 ### Desktop GUI
 
@@ -57,76 +92,93 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The application opens a five-tab desktop window: **Compress**, **Decompress**, **Analytics**, **Visualizer**, **Incremental**. The Compress tab is laid out as four numbered steps (1. add files → 2. pick output folder → 3. choose quality → 4. click *Compress now*). `Ctrl+Enter` triggers compression.
+The window opens five tabs: **Compress → Decompress → Analytics → Visualizer → Incremental**.
 
-### Command line (also works without a display server)
+### Command Line
 
 ```bash
-# Compress a folder — produces build/sample_pkg/  AND  build/sample_pkg.webzip
+# Compress a folder
 python -m src.cli compress data/sample_webpage -o build/sample_pkg --preset Balanced
 
-# Decompress directly from the single-file archive
+# Decompress (accepts folder or .webzip archive)
 python -m src.cli decompress build/sample_pkg.webzip -o build/sample_restored
 
-# (Or from the package folder — both work)
-python -m src.cli decompress build/sample_pkg -o build/sample_restored
-
-# Re-verify a previously restored package
+# Verify integrity of a restored package
 python -m src.cli verify build/sample_pkg build/sample_restored
 ```
 
-The CLI prints a progress bar, the compression ratio, the path of the resulting `.webzip` archive, and how many text files matched their original SHA-256 hash.
-
-## Output formats
-
-Every compression run produces two artefacts:
-
-1. A **package folder** that contains `manifest.json`, `incremental_cache.json`, the `compressed/` files, and the per-run metrics under `reports/`. This folder is fully inspectable with any text editor or hex viewer.
-2. A **single-file `.webzip` archive** of that folder, ready to email or upload. Internally it is a standard ZIP (compression level 6), so any unzip tool can open it. Decompression accepts either the folder or the archive interchangeably.
-
-## How to test
+### Tests
 
 ```bash
 python tests/run_all.py
 ```
 
-The test runner exercises Huffman, LZ77, the text pipeline, and the end-to-end manager including the integrity verification path.
+---
 
-## Project layout
+## Project Layout
 
 ```
 WebZipStudio/
-  main.py                 # GUI entry point
+  main.py                  # GUI entry point
   requirements.txt
   src/
-    algorithms/           # Huffman + LZ77
-    core/                 # pipelines, manifest, metrics, comparison, transfer
-    gui/                  # PySide6 window + tabs
-    utils/                # formatting helpers
-    models/
+    algorithms/            # huffman.py, lz77.py  ← core data structures
+    core/                  # archive, comparison, incremental, integrity,
+    │                      # manifest, metrics, strategy, transfer pipelines
+    gui/                   # PySide6 main window + 5 tabs
+    utils/                 # formatting helpers
   data/
-    sample_webpage/       # tiny demo (HTML, CSS, JS, JPG, PNG)
-    sample_large_case/    # 16-file batch used for the metrics in this README
-  reports/                # populated by demo runs
-  docs/                   # design + complexity + Q&A documents
-  tests/                  # unit + integration tests
-  assets/                 # charts used by report and slides
+    sample_webpage/        # small demo (HTML/CSS/JS/images)
+    sample_large_case/     # 16-file batch used for the README numbers
+  docs/                    # SYSTEM_DESIGN, COMPLEXITY_ANALYSIS, TEST_PLAN, DEFENSE_QA
+  tests/                   # unit + integration tests
+  assets/                  # comparison charts
 ```
 
-## Documentation map
+---
 
-- `docs/SYSTEM_DESIGN.md` — architecture, modules, data flow
-- `docs/COMPLEXITY_ANALYSIS.md` — time/space complexity per algorithm
-- `docs/TEST_PLAN.md` — test strategy
-- `docs/DEFENSE_QA.md` — likely defense questions and answers
-- `docs/REPORT_HELP.md` — mapping to the official report sections
+## Architecture
 
-## Algorithms in one paragraph
+```
+User input (files / folder)
+        │
+        ▼
+  StrategySelector (hash map: ext → strategy)
+    ├── "text"  ──▶  LZ77 encoder ──▶ Huffman coder ──▶ .wzs file
+    └── "image" ──▶  Pillow re-encoder ──▶ compressed jpg/png
+        │
+        ▼
+  Manifest (JSON) + IncrementalCache + MetricsCollector
+        │
+        ▼
+  Package folder  ──▶  .webzip archive (standard ZIP wrapper)
+```
 
-Text files are tokenized as raw bytes and run through an LZ77 sliding-window encoder that emits `(offset, length, next_byte)` triples. The resulting symbol stream is fed to a Huffman coder built on a min-heap, which produces a prefix code book. The bitstream is packed into a `.wzs` file with a small JSON header that records the symbol frequencies needed for decoding. Decompression reverses the process exactly. Image files use Pillow with quality presets so the user explicitly trades image fidelity for size.
+Compression and decompression run on `QThread` workers so the UI stays responsive during large batches.
 
-## Limitations
+---
 
-- The custom text pipeline competes against gzip/zip on small batches; gzip is highly tuned and uses Deflate. The point of this project is to expose the data structures, not to beat Deflate. The comparison panel makes this trade-off visible.
-- Image compression is lossy by design; we never silently swap formats.
-- The single-file `.wzs` header carries the frequency table, so very tiny inputs may grow slightly. This is documented in `docs/COMPLEXITY_ANALYSIS.md`.
+## What I Learned
+
+- Implementing LZ77 and Huffman from scratch revealed exactly *why* real compressors (Deflate = LZ77 + Huffman) work so well — and where the constant-factor overhead of a Python implementation bites
+- Designing the `.wzs` binary format taught me how to embed metadata (frequency table) needed to reconstruct the decoder on the other side without a separate dictionary file
+- Threading a PySide6 GUI with `QThread` signal/slot proved much cleaner than locking shared state — the UI never blocks even on large folders
+- SHA-256 integrity checking showed why a manifest hash is safer than a CRC for tamper detection
+
+---
+
+## My Role
+
+Solo implementation of the compression algorithms, CLI, test suite, and GUI architecture. Team members (Alen Bakbergen, Diego David Huang Liu) contributed the analytics charts, sample data, and the project report.
+
+---
+
+## Team
+
+| Member | Student ID |
+|---|---|
+| Bakbergen Amir | 202469990559 |
+| Bakbergen Alen | 202469990562 |
+| Huang Liu Diego David | 202469990549 |
+
+*Final project — Data Structures and its Algorithms course*
