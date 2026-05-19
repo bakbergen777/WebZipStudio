@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebZip Studio — Sample Webpage</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="hero">
+        <h1>WebZip Studio</h1>
+        <p class="tagline">A compression system designed around classic data structures.</p>
+        <a class="cta" href="#features">Explore features</a>
+    </header>
+
+    <main>
+        <section id="features">
+            <h2>Why this project exists</h2>
+            <div class="grid">
+                <article class="card">
+                    <h3>Lossless text compression</h3>
+                    <p>
+                        HTML, CSS, and JavaScript files are compressed with a custom
+                        LZ77 + Huffman pipeline. Decompression returns the exact bytes
+                        the user uploaded, verified by SHA-256.
+                    </p>
+                </article>
+                <article class="card">
+                    <h3>Controllable image compression</h3>
+                    <p>
+                        JPEG and PNG assets are recompressed with a quality slider.
+                        Pick High, Balanced, or Strong to trade fidelity for size.
+                    </p>
+                </article>
+                <article class="card">
+                    <h3>Built on classic data structures</h3>
+                    <p>
+                        Hash maps for frequency tables, a min-heap to construct the
+                        Huffman tree, a sliding window for LZ77 matches, queues for
+                        batch processing, and a trie-style prefix index for fast
+                        match lookup.
+                    </p>
+                </article>
+                <article class="card">
+                    <h3>Honest comparison</h3>
+                    <p>
+                        Every batch is replayed against gzip and ZIP_DEFLATED so we
+                        can show the cost and benefit of our pipeline in a single
+                        chart instead of an unfair benchmark.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <section id="how">
+            <h2>How it works</h2>
+            <ol>
+                <li>Tokenize the file into bytes.</li>
+                <li>Run the LZ77 sliding window to produce (offset, length, next) triples.</li>
+                <li>Build the Huffman tree on top of those triples.</li>
+                <li>Pack the bitstream into a custom <code>.wzs</code> container.</li>
+                <li>Reverse all three steps to verify exact restoration.</li>
+            </ol>
+        </section>
+
+        <section id="screenshots">
+            <h2>Screenshots</h2>
+            <p>The GUI is built with PySide6 and exposes five tabs.</p>
+            <figure>
+                <img src="image1.jpg" alt="Compress tab screenshot placeholder">
+                <figcaption>Compress tab</figcaption>
+            </figure>
+            <figure>
+                <img src="image2.png" alt="Visualizer tab screenshot placeholder">
+                <figcaption>Visualizer tab</figcaption>
+            </figure>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; Data Structure and its Algorithms — Final Project — Group of three.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
